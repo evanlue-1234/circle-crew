@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { useAuthStore } from "../authStore";
 import { useCircleStore } from "../circleStore";
-import { supabase } from "../lib/supabase";
+import { InviteResult, sendCircleInvites } from "../lib/circleInvites";
 import { PlanIntent } from "../navigation";
 import { StatusBar } from "./StatusBar";
 
@@ -9,18 +8,22 @@ type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
 };
 
-type Invitee = { id: string; email: string };
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const INVITE_LINK = "crew.app/crew/x7K2";
-const INVITE_MESSAGE = `Join our College Crew circle in Crew. We'll use it to find fun things to do and make plans happen. Tap here to join: ${INVITE_LINK}`;
+
+const RESULT_LABEL: Record<InviteResult, string> = {
+  invited: "Invited",
+  already_registered: "Already on Crew — they'll see it next login",
+  already_member: "Already a member",
+  email_failed: "Couldn't send",
+};
 
 export function InviteScreen({ onNavigate }: Props) {
   const circleId = useCircleStore((s) => s.currentCircleId);
   const [emailInput, setEmailInput] = useState("");
-  const [invitees, setInvitees] = useState<Invitee[]>([]);
+  const [invitees, setInvitees] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [results, setResults] = useState<{ email: string; result: InviteResult }[] | null>(null);
+  const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -30,14 +33,11 @@ export function InviteScreen({ onNavigate }: Props) {
     };
   }, []);
 
-  const handleAddEmails = async (e: FormEvent) => {
+  const handleAddEmails = (e: FormEvent) => {
     e.preventDefault();
-    const user = useAuthStore.getState().user;
-    if (!user || !circleId) return;
-
     const parts = emailInput
       .split(";")
-      .map((part) => part.trim())
+      .map((part) => part.trim().toLowerCase())
       .filter(Boolean);
     if (parts.length === 0) return;
 
@@ -48,41 +48,41 @@ export function InviteScreen({ onNavigate }: Props) {
       else invalid.push(part);
     }
 
-    const existing = new Set(invitees.map((i) => i.email));
+    const existing = new Set(invitees);
     const newEmails = valid.filter((email) => !existing.has(email));
 
     setEmailInput("");
     setNotice(invalid.length > 0 ? `Skipped invalid entries: ${invalid.join(", ")}` : null);
-
-    if (newEmails.length === 0) return;
-
-    setSubmitting(true);
-    const { data, error } = await supabase
-      .from("invites")
-      .insert(newEmails.map((email) => ({ circle_id: circleId, email, invited_by: user.id })))
-      .select();
-    setSubmitting(false);
-
-    if (error || !data) {
-      setNotice(error?.message ?? "Couldn't send those invites.");
-      return;
-    }
-
-    setInvitees((prev) => [...prev, ...data.map((row) => ({ id: row.id, email: row.email }))]);
+    setInvitees((prev) => [...prev, ...newEmails]);
   };
 
-  const removeInvitee = async (invitee: Invitee) => {
-    const { error } = await supabase.from("invites").delete().eq("id", invitee.id);
-    if (error) {
-      setNotice(error.message);
-      return;
-    }
-    setInvitees((prev) => prev.filter((i) => i.id !== invitee.id));
+  const removeInvitee = (email: string) => {
+    setInvitees((prev) => prev.filter((e) => e !== email));
   };
+
+  const handleSendInvites = async () => {
+    if (!circleId || invitees.length === 0) return;
+    setSending(true);
+    setNotice(null);
+    try {
+      const sent = await sendCircleInvites(circleId, invitees);
+      setResults(sent);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inviteLink = circleId
+    ? `${window.location.origin}${window.location.pathname}#/join?circle=${circleId}`
+    : null;
+  const inviteMessage = `Join our circle on Crew — we use it to find fun things to do and make plans happen. Tap here to join: ${inviteLink}`;
 
   const handleCopyLink = async () => {
+    if (!inviteLink) return;
     try {
-      await navigator.clipboard.writeText(INVITE_MESSAGE);
+      await navigator.clipboard.writeText(inviteMessage);
       setCopied(true);
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
@@ -102,12 +102,7 @@ export function InviteScreen({ onNavigate }: Props) {
             onNavigate("back");
           }}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
@@ -149,56 +144,102 @@ export function InviteScreen({ onNavigate }: Props) {
               marginTop: "8px",
             }}
           >
-            Share a link by text, email, or your favorite chat. Friends can join
-            without a public profile.
+            We'll email them a link to join — no account needed to receive it.
           </p>
 
-          <form onSubmit={handleAddEmails} style={{ marginTop: 8 }}>
-            <label className="field-label" htmlFor="invite-email">
-              Invite by email
-            </label>
-            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-              <input
-                id="invite-email"
-                className="field-input"
-                type="text"
-                placeholder="alex@mail.com; sam@mail.com"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                style={{ marginTop: 0 }}
-              />
+          {results === null ? (
+            <>
+              <form onSubmit={handleAddEmails} style={{ marginTop: 8 }}>
+                <label className="field-label" htmlFor="invite-email">
+                  Invite by email
+                </label>
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <input
+                    id="invite-email"
+                    className="field-input"
+                    type="text"
+                    placeholder="alex@mail.com; sam@mail.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    style={{ marginTop: 0 }}
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: "auto", padding: "0 16px" }}
+                    disabled={!circleId}
+                  >
+                    Add
+                  </button>
+                </div>
+                {notice && (
+                  <p style={{ fontSize: 12, color: "var(--warn)", marginTop: 6 }}>{notice}</p>
+                )}
+                {invitees.length > 0 && (
+                  <div className="invite-chip-list">
+                    {invitees.map((email) => (
+                      <span key={email} className="invite-chip">
+                        {email}
+                        <button
+                          type="button"
+                          className="invite-chip-remove"
+                          aria-label={`Remove ${email}`}
+                          onClick={() => removeInvitee(email)}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <path d="M6 6l12 12M18 6L6 18" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </form>
+
               <button
-                type="submit"
                 className="btn btn-primary"
-                style={{ width: "auto", padding: "0 16px" }}
-                disabled={submitting || !circleId}
+                style={{ marginTop: "16px" }}
+                disabled={sending || !circleId || invitees.length === 0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSendInvites();
+                }}
               >
-                Add
+                {sending ? "Sending…" : "Send Invites"}
               </button>
-            </div>
-            {notice && (
-              <p style={{ fontSize: 12, color: "var(--warn)", marginTop: 6 }}>{notice}</p>
-            )}
-            {invitees.length > 0 && (
-              <div className="invite-chip-list">
-                {invitees.map((invitee) => (
-                  <span key={invitee.id} className="invite-chip">
-                    {invitee.email}
-                    <button
-                      type="button"
-                      className="invite-chip-remove"
-                      aria-label={`Remove ${invitee.email}`}
-                      onClick={() => removeInvitee(invitee)}
+            </>
+          ) : (
+            <>
+              <div className="section-label" style={{ padding: "0", marginTop: "16px" }}>
+                Results
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {results.map((r) => (
+                  <div
+                    key={r.email}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                  >
+                    <span style={{ fontSize: 13 }}>{r.email}</span>
+                    <span
+                      className={r.result === "invited" ? "tag tag-success" : "tag tag-soft"}
                     >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <path d="M6 6l12 12M18 6L6 18" />
-                      </svg>
-                    </button>
-                  </span>
+                      {RESULT_LABEL[r.result]}
+                    </span>
+                  </div>
                 ))}
               </div>
-            )}
-          </form>
+              <button
+                className="btn btn-primary"
+                style={{ marginTop: "16px" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate("circleHub");
+                }}
+              >
+                Done
+              </button>
+            </>
+          )}
 
           <div
             className="card"
@@ -210,13 +251,12 @@ export function InviteScreen({ onNavigate }: Props) {
               marginTop: 16,
             }}
           >
-            "Join our College Crew circle in Crew. We'll use it to find fun
-            things to do and make plans happen. Tap here to join:{" "}
-            <b style={{ color: "var(--primary)" }}>{INVITE_LINK}</b>"
+            "{inviteMessage}"
           </div>
           <button
             className={copied ? "btn btn-dark copied" : "btn btn-dark"}
             style={{ marginTop: "6px" }}
+            disabled={!inviteLink}
             onClick={(e) => {
               e.stopPropagation();
               handleCopyLink();

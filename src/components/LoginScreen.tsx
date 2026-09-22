@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { StatusBar } from "./StatusBar";
@@ -14,6 +15,11 @@ export function LoginScreen({ onNavigate }: Props) {
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Set by RequireAuth when it bounced an unauthenticated visit here (e.g. an invite link) —
+  // returning there afterward instead of always landing on Home.
+  const from = (location.state as { from?: string } | null)?.from ?? null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,7 +31,8 @@ export function LoginScreen({ onNavigate }: Props) {
       setNotice({ kind: "error", message: error.message });
       return;
     }
-    onNavigate("home");
+    if (from) navigate(from, { replace: true });
+    else onNavigate("home");
   };
 
   const handleForgotPassword = async () => {

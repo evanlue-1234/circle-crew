@@ -7,6 +7,7 @@ import { CircleHubScreen } from "./components/CircleHubScreen";
 import { PlansScreen } from "./components/PlansScreen";
 import { SetupScreen } from "./components/SetupScreen";
 import { InviteScreen } from "./components/InviteScreen";
+import { JoinScreen } from "./components/JoinScreen";
 import { SpinnerScreen } from "./components/SpinnerScreen";
 import { CaptainScreen } from "./components/CaptainScreen";
 import { DiscoverScreen } from "./components/DiscoverScreen";
@@ -35,6 +36,7 @@ export const screens: Record<ScreenId, ComponentType<ScreenProps>> = {
   plans: PlansScreen,
   setup: SetupScreen,
   invite: InviteScreen,
+  join: JoinScreen,
   spinner: SpinnerScreen,
   captain: CaptainScreen,
   discover: DiscoverScreen,

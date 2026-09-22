@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "../authStore";
 import { useCircleStore } from "../circleStore";
+import { acceptCircleInvite } from "../lib/circleInvites";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { StatusBar } from "./StatusBar";
@@ -16,6 +17,11 @@ type Circle = {
   memberCount: number;
 };
 
+type PendingInvite = {
+  circleId: string;
+  circleName: string;
+};
+
 export function HomeScreen({ onNavigate }: Props) {
   const user = useAuthStore((s) => s.user);
   const setCurrentCircleId = useCircleStore((s) => s.setCurrentCircleId);
@@ -26,6 +32,9 @@ export function HomeScreen({ onNavigate }: Props) {
   const [leaveError, setLeaveError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[] | null>(null);
+  const [joiningCircleId, setJoiningCircleId] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -72,7 +81,7 @@ export function HomeScreen({ onNavigate }: Props) {
 
       const { data, error } = await supabase
         .from("circles")
-        .select("id, name, city, circle_members(count), invites(count)")
+        .select("id, name, city, circle_members(status)")
         .in("id", circleIds)
         .order("created_at", { ascending: false });
 
@@ -86,7 +95,10 @@ export function HomeScreen({ onNavigate }: Props) {
           id: row.id,
           name: row.name,
           city: row.city,
-          memberCount: (row.circle_members[0]?.count ?? 0) + (row.invites[0]?.count ?? 0),
+          // "Member count" includes people still pending an invite, not just joined ones.
+          memberCount: (row.circle_members as { status: string }[]).filter(
+            (m) => m.status === "active" || m.status === "invited",
+          ).length,
         })),
       );
     })();
@@ -95,6 +107,44 @@ export function HomeScreen({ onNavigate }: Props) {
       cancelled = true;
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.email) return;
+    let cancelled = false;
+
+    supabase
+      .from("circle_members")
+      .select("circle_id, circles(name)")
+      .eq("email", user.email.toLowerCase())
+      .eq("status", "invited")
+      .then(({ data }) => {
+        if (cancelled) return;
+        setPendingInvites(
+          (data ?? []).map((row: any) => {
+            const circle = Array.isArray(row.circles) ? row.circles[0] : row.circles;
+            return { circleId: row.circle_id, circleName: circle?.name ?? "Circle" };
+          }),
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const handleJoinInvite = async (invite: PendingInvite) => {
+    setJoiningCircleId(invite.circleId);
+    setJoinError(null);
+    try {
+      await acceptCircleInvite(invite.circleId);
+      setPendingInvites((prev) => (prev ?? []).filter((i) => i.circleId !== invite.circleId));
+      openCircle(invite.circleId);
+    } catch (err) {
+      setJoinError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setJoiningCircleId(null);
+    }
+  };
 
   const openCircle = (id: string) => {
     setCurrentCircleId(id);
@@ -175,6 +225,39 @@ export function HomeScreen({ onNavigate }: Props) {
       </div>
       <div className="screen-body">
         <div className="content-pad">
+          {pendingInvites && pendingInvites.length > 0 && (
+            <>
+              <div className="section-label" style={{ padding: "0" }}>
+                Pending Invites
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                {pendingInvites.map((invite) => (
+                  <div
+                    key={invite.circleId}
+                    className="card"
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                  >
+                    <div className="card-title">{invite.circleName}</div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      style={{ width: "auto", padding: "0 16px" }}
+                      disabled={joiningCircleId === invite.circleId}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleJoinInvite(invite);
+                      }}
+                    >
+                      {joiningCircleId === invite.circleId ? "Joining…" : "Join"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {joinError && (
+                <p style={{ fontSize: 12, color: "var(--warn)", marginBottom: 10 }}>{joinError}</p>
+              )}
+            </>
+          )}
+
           {error && (
             <p style={{ fontSize: 13, color: "var(--warn)" }}>Couldn't load circles: {error}</p>
           )}

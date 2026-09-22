@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { StatusBar } from "./StatusBar";
@@ -14,6 +15,9 @@ export function SignupScreen({ onNavigate }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const from = (location.state as { from?: string } | null)?.from ?? null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,7 +33,8 @@ export function SignupScreen({ onNavigate }: Props) {
       setError(error.message);
       return;
     }
-    onNavigate("home");
+    if (from) navigate(from, { replace: true });
+    else onNavigate("home");
   };
 
   return (

@@ -1,6 +1,6 @@
 export type ScreenId =
   | "login" | "signup" | "home" | "circleHub" | "plans" | "setup"
-  | "invite" | "spinner" | "captain" | "discover" | "poll" | "swipe"
+  | "invite" | "join" | "spinner" | "captain" | "discover" | "poll" | "swipe"
   | "share" | "pending" | "match" | "vote" | "commit" | "confirmed"
   | "rhythm" | "recap" | "memories" | "profile";
 

@@ -22,12 +22,10 @@ const ACTIVE_PLAN_STATUSES = ["collecting", "voting", "rsvp"];
 
 type Member = {
   id: string;
+  userId: string | null;
+  status: string;
   name: string | null;
-};
-
-type Invite = {
-  id: string;
-  email: string;
+  email: string | null;
 };
 
 const AVATAR_COLORS = ["#e2543a", "#1f7a6b", "#d19900", "#7a4fb0", "#3a8fb0", "#d96a8a"];
@@ -52,7 +50,6 @@ export function CircleHubScreen({ onNavigate }: Props) {
   const [circleName, setCircleName] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [members, setMembers] = useState<Member[] | null>(null);
-  const [invites, setInvites] = useState<Invite[] | null>(null);
 
   const [activePlan, setActivePlan] = useState<{ id: string } | null>(null);
   const [activePlanLoading, setActivePlanLoading] = useState(true);
@@ -104,32 +101,23 @@ export function CircleHubScreen({ onNavigate }: Props) {
     let cancelled = false;
     supabase
       .from("circle_members")
-      .select("user_id, profiles(name)")
+      .select("id, user_id, status, email, profiles(name)")
       .eq("circle_id", circleId)
-      .eq("status", "active")
+      .in("status", ["active", "invited"])
       .then(({ data }) => {
         if (cancelled) return;
         setMembers(
           (data ?? []).map((row: any) => {
             const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-            return { id: row.user_id, name: profile?.name ?? null };
+            return {
+              id: row.id,
+              userId: row.user_id,
+              status: row.status,
+              name: profile?.name ?? null,
+              email: row.email,
+            };
           }),
         );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [circleId]);
-
-  useEffect(() => {
-    if (!circleId) return;
-    let cancelled = false;
-    supabase
-      .from("invites")
-      .select("id, email")
-      .eq("circle_id", circleId)
-      .then(({ data }) => {
-        if (!cancelled) setInvites(data ?? []);
       });
     return () => {
       cancelled = true;
@@ -227,7 +215,7 @@ export function CircleHubScreen({ onNavigate }: Props) {
   const lastEvent = past[0];
   const nextEvent = upcoming[0];
 
-  const totalPeople = (members?.length ?? 0) + (invites?.length ?? 0);
+  const totalPeople = members?.length ?? 0;
   const eventsJoinedFraction = `0/${totalEvents}`;
 
   return (
@@ -298,29 +286,22 @@ export function CircleHubScreen({ onNavigate }: Props) {
             Members · {totalPeople}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {members?.map((member) => (
-              <div key={member.id} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span className="avatar" style={{ background: colorFor(member.id) }}>
-                  {(member.name ?? "?")[0]?.toUpperCase() ?? "?"}
-                </span>
-                <div style={{ flex: "1", fontSize: "13px" }}>{member.name ?? "Member"}</div>
-                <span className="member-count">{eventsJoinedFraction}</span>
-              </div>
-            ))}
-            {invites?.map((invite) => (
-              <div key={invite.id} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span className="avatar" style={{ background: colorFor(invite.id) }}>
-                  {invite.email[0]?.toUpperCase() ?? "?"}
-                </span>
-                <div style={{ flex: "1", fontSize: "13px" }}>
-                  {invite.email}{" "}
-                  <span className="tag tag-soft" style={{ marginLeft: 4 }}>
-                    Invited
+            {members?.map((member) => {
+              const isActive = member.status === "active";
+              const label = isActive ? member.name ?? "Member" : member.email ?? "Invited";
+              return (
+                <div key={member.id} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="avatar" style={{ background: colorFor(member.id) }}>
+                    {label[0]?.toUpperCase() ?? "?"}
                   </span>
+                  <div style={{ flex: "1", fontSize: "13px" }}>{label}</div>
+                  <span className={isActive ? "tag tag-soft" : "tag tag-gold"}>
+                    {isActive ? "Member" : "Invited"}
+                  </span>
+                  {isActive && <span className="member-count">{eventsJoinedFraction}</span>}
                 </div>
-                <span className="member-count">{eventsJoinedFraction}</span>
-              </div>
-            ))}
+              );
+            })}
             {totalPeople === 0 && <div className="empty-state">No members yet.</div>}
           </div>
 

@@ -145,6 +145,9 @@ export function ProfileScreen({ onNavigate }: Props) {
         name: joinName(form.firstName, form.lastName),
         city: form.city || null,
         phone: form.phone || null,
+        // Kept in sync with the auth email below — invite matching (accept_circle_invite,
+        // the circles/circle_members RLS clauses) reads this column, not auth.users.email.
+        email: form.email ? form.email.toLowerCase() : null,
       })
       .eq("id", user.id);
 
