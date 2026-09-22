@@ -20,6 +20,7 @@ const corsHeaders = {
 
 type ResultCode = "invited" | "already_registered" | "already_member" | "email_failed";
 type RequestBody = { circle_id?: string; emails?: string[] };
+type EmailResult = { email: string; result: ResultCode; reason?: string };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -75,7 +76,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Not a member of this circle" }, 403);
   }
 
-  const results: { email: string; result: ResultCode }[] = [];
+  const results: EmailResult[] = [];
 
   for (const email of emails) {
     const { data: existingRow } = await admin
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
       .insert({ circle_id: circleId, email, status: "invited", user_id: null });
 
     if (insertError) {
-      results.push({ email, result: "email_failed" });
+      results.push({ email, result: "email_failed", reason: insertError.message });
       continue;
     }
 
@@ -117,7 +118,11 @@ Deno.serve(async (req) => {
     const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${APP_URL}/?circle=${circleId}`,
     });
-    results.push({ email, result: inviteError ? "email_failed" : "invited" });
+    results.push(
+      inviteError
+        ? { email, result: "email_failed", reason: inviteError.message }
+        : { email, result: "invited" },
+    );
   }
 
   return jsonResponse({ results });

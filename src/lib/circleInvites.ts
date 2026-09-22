@@ -1,11 +1,9 @@
 import { supabase } from "./supabase";
 
 export type InviteResult = "invited" | "already_registered" | "already_member" | "email_failed";
+export type InviteResultRow = { email: string; result: InviteResult; reason?: string };
 
-export async function sendCircleInvites(
-  circleId: string,
-  emails: string[],
-): Promise<{ email: string; result: InviteResult }[]> {
+export async function sendCircleInvites(circleId: string, emails: string[]): Promise<InviteResultRow[]> {
   const { data, error } = await supabase.functions.invoke("send-circle-invites", {
     body: { circle_id: circleId, emails },
   });

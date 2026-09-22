@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useCircleStore } from "../circleStore";
-import { InviteResult, sendCircleInvites } from "../lib/circleInvites";
+import { InviteResult, InviteResultRow, sendCircleInvites } from "../lib/circleInvites";
 import { PlanIntent } from "../navigation";
 import { StatusBar } from "./StatusBar";
 
@@ -22,7 +22,7 @@ export function InviteScreen({ onNavigate }: Props) {
   const [emailInput, setEmailInput] = useState("");
   const [invitees, setInvitees] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
-  const [results, setResults] = useState<{ email: string; result: InviteResult }[] | null>(null);
+  const [results, setResults] = useState<InviteResultRow[] | null>(null);
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -215,16 +215,18 @@ export function InviteScreen({ onNavigate }: Props) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {results.map((r) => (
-                  <div
-                    key={r.email}
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  >
-                    <span style={{ fontSize: 13 }}>{r.email}</span>
-                    <span
-                      className={r.result === "invited" ? "tag tag-success" : "tag tag-soft"}
-                    >
-                      {RESULT_LABEL[r.result]}
-                    </span>
+                  <div key={r.email}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 13 }}>{r.email}</span>
+                      <span
+                        className={r.result === "invited" ? "tag tag-success" : "tag tag-soft"}
+                      >
+                        {RESULT_LABEL[r.result]}
+                      </span>
+                    </div>
+                    {r.reason && (
+                      <p style={{ fontSize: 11, color: "var(--warn)", marginTop: 2 }}>{r.reason}</p>
+                    )}
                   </div>
                 ))}
               </div>
