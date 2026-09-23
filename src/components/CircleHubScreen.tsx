@@ -6,7 +6,6 @@ import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { usePlanStore } from "../store";
 import { ComingSoon } from "./ComingSoon";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -220,7 +219,6 @@ export function CircleHubScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button
           className="ghost-btn"
@@ -346,7 +344,7 @@ export function CircleHubScreen({ onNavigate }: Props) {
                 handleStartPlan();
               }}
             >
-              {creatingPlan ? "Starting…" : "Plan something new"}
+              {creatingPlan ? "Starting…" : "Plan Something"}
             </button>
           ) : step && !step.actionable ? (
             <button className="btn btn-ghost" style={{ marginTop: "12px" }} disabled>
@@ -377,6 +375,27 @@ export function CircleHubScreen({ onNavigate }: Props) {
               {copied ? "Copied!" : "Copy invite"}
             </button>
           )}
+
+          <button
+            className="btn btn-outline"
+            style={{ marginTop: "8px" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate("invite");
+            }}
+          >
+            Invite More People
+          </button>
+          <button
+            className="btn btn-outline"
+            style={{ marginTop: "8px" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigate("discover");
+            }}
+          >
+            Explore Ideas
+          </button>
         </div>
       </div>
     </div>

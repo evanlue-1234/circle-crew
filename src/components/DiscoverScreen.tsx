@@ -3,7 +3,6 @@ import { DiscoverAggregateRow, fetchFriendLikedEvents, fetchPopularWithOtherCirc
 import { buildMessagesUrl } from "../lib/planDate";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -246,7 +245,6 @@ export function DiscoverScreen(_props: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <h2>Discover</h2>
         <span className="tag tag-soft">📍 Raleigh–Durham</span>

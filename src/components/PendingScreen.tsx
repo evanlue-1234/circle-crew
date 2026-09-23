@@ -5,7 +5,6 @@ import { supabase } from "../lib/supabase";
 import { usePolling } from "../lib/usePolling";
 import { PlanIntent } from "../navigation";
 import { usePlanStore } from "../store";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -78,7 +77,6 @@ export function PendingScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button
           className="ghost-btn"

@@ -1,8 +1,9 @@
 import { FormEvent, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import crewLogo from "../assets/crew-logo.png";
+import { consumePendingNdaAcceptance } from "../lib/ndaAcceptance";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -25,12 +26,13 @@ export function LoginScreen({ onNavigate }: Props) {
     e.preventDefault();
     setNotice(null);
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
       setNotice({ kind: "error", message: error.message });
       return;
     }
+    if (data.user) await consumePendingNdaAcceptance(data.user.id).catch(() => {});
     if (from) navigate(from, { replace: true });
     else onNavigate("home");
   };
@@ -55,27 +57,14 @@ export function LoginScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="screen-body">
         <div className="content-pad" style={{ paddingTop: 30 }}>
           <div style={{ textAlign: "center", marginBottom: 22 }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 15,
-                background: "var(--primary)",
-                display: "grid",
-                placeItems: "center",
-                margin: "0 auto",
-                color: "#fff",
-                fontFamily: "var(--font-display)",
-                fontWeight: 700,
-                fontSize: 24,
-              }}
-            >
-              C
-            </div>
+            <img
+              src={crewLogo}
+              alt="Crew"
+              style={{ width: 52, height: 52, borderRadius: 15, margin: "0 auto", display: "block" }}
+            />
             <div
               style={{
                 fontFamily: "var(--font-display)",
@@ -171,7 +160,7 @@ export function LoginScreen({ onNavigate }: Props) {
             Don't have an account?{" "}
             <b
               style={{ color: "var(--primary)", cursor: "pointer" }}
-              onClick={() => onNavigate("signup")}
+              onClick={() => onNavigate("onboardingWelcome")}
             >
               Sign up
             </b>

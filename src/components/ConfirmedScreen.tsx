@@ -9,7 +9,6 @@ import {
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { usePlanStore } from "../store";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -94,7 +93,6 @@ export function ConfirmedScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="screen-body">
         <div className="content-pad" style={{ paddingTop: "14px" }}>
           <div className="celebrate">

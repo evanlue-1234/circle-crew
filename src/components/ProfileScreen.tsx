@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -176,7 +175,6 @@ export function ProfileScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button
           className="ghost-btn"

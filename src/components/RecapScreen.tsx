@@ -1,5 +1,4 @@
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -8,7 +7,6 @@ type Props = {
 export function RecapScreen({ onNavigate }: Props) {
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button
           className="ghost-btn"

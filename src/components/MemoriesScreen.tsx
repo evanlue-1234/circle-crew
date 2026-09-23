@@ -1,6 +1,5 @@
 import { ComingSoon } from "./ComingSoon";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -9,7 +8,6 @@ type Props = {
 export function MemoriesScreen({ onNavigate: _onNavigate }: Props) {
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <h2>Memories</h2>
       </div>

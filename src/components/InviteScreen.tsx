@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useCircleStore } from "../circleStore";
 import { InviteResult, InviteResultRow, sendCircleInvites } from "../lib/circleInvites";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -93,7 +92,6 @@ export function InviteScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button
           className="ghost-btn"

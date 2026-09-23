@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
     const { error: insertError } = await admin
       .from("circle_members")
-      .insert({ circle_id: circleId, email, status: "invited", user_id: null });
+      .insert({ circle_id: circleId, email, status: "invited", user_id: null, invited_by: caller.id });
 
     if (insertError) {
       results.push({ email, result: "email_failed", reason: insertError.message });

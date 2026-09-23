@@ -6,7 +6,6 @@ import { PlanStep, resolvePlanStep } from "../lib/planStep";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { usePlanStore } from "../store";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -164,7 +163,6 @@ export function PlansScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <h2>Plans</h2>
         {plans !== null && <span className="tag tag-soft">{totalActive} active</span>}

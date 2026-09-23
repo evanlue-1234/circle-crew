@@ -1,7 +1,12 @@
 import { ComponentType } from "react";
 import { ScreenId, PlanIntent } from "./navigation";
 import { LoginScreen } from "./components/LoginScreen";
-import { SignupScreen } from "./components/SignupScreen";
+import { OnboardingAccountScreen } from "./components/OnboardingAccountScreen";
+import { OnboardingCompleteScreen } from "./components/OnboardingCompleteScreen";
+import { OnboardingLocationScreen } from "./components/OnboardingLocationScreen";
+import { OnboardingNameScreen } from "./components/OnboardingNameScreen";
+import { OnboardingWelcomeScreen } from "./components/OnboardingWelcomeScreen";
+import { SplashScreen } from "./components/SplashScreen";
 import { HomeScreen } from "./components/HomeScreen";
 import { CircleHubScreen } from "./components/CircleHubScreen";
 import { PlansScreen } from "./components/PlansScreen";
@@ -29,8 +34,13 @@ export type ScreenProps = {
 };
 
 export const screens: Record<ScreenId, ComponentType<ScreenProps>> = {
+  splash: SplashScreen,
   login: LoginScreen,
-  signup: SignupScreen,
+  onboardingWelcome: OnboardingWelcomeScreen,
+  onboardingName: OnboardingNameScreen,
+  onboardingLocation: OnboardingLocationScreen,
+  onboardingAccount: OnboardingAccountScreen,
+  onboardingComplete: OnboardingCompleteScreen,
   home: HomeScreen,
   circleHub: CircleHubScreen,
   plans: PlansScreen,

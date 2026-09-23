@@ -6,7 +6,6 @@ import { advancePlanToVoting } from "../lib/planAggregation";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
 import { PollAnswers, usePlanStore } from "../store";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -213,7 +212,6 @@ export function PollScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button
           className="ghost-btn"

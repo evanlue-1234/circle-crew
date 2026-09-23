@@ -18,3 +18,18 @@ export async function acceptCircleInvite(circleId: string): Promise<AcceptInvite
   if (error) throw new Error(error.message);
   return data as AcceptInviteResult;
 }
+
+export type CircleInvitePreview = {
+  circleName: string;
+  inviterName: string | null;
+  memberNames: string[];
+};
+
+/** Null means the caller isn't a member of and wasn't invited to this circle. */
+export async function fetchCircleInvitePreview(circleId: string): Promise<CircleInvitePreview | null> {
+  const { data, error } = await supabase.rpc("get_circle_invite_preview", { p_circle_id: circleId });
+  if (error) throw new Error(error.message);
+  const row = data?.[0];
+  if (!row) return null;
+  return { circleName: row.circle_name, inviterName: row.inviter_name, memberNames: row.member_names ?? [] };
+}

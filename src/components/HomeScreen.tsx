@@ -4,7 +4,6 @@ import { useCircleStore } from "../circleStore";
 import { acceptCircleInvite } from "../lib/circleInvites";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -179,7 +178,6 @@ export function HomeScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <h2>Your circles</h2>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>

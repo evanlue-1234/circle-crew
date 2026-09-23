@@ -3,7 +3,6 @@ import { useAuthStore } from "../authStore";
 import { useCircleStore } from "../circleStore";
 import { supabase } from "../lib/supabase";
 import { PlanIntent } from "../navigation";
-import { StatusBar } from "./StatusBar";
 
 type Props = {
   onNavigate: (target: string, intent?: PlanIntent) => void;
@@ -114,7 +113,6 @@ export function SetupScreen({ onNavigate }: Props) {
 
   return (
     <div className="phone-screen-inner">
-      <StatusBar />
       <div className="app-header">
         <button className="ghost-btn" onClick={() => onNavigate("back")}>
           <svg
