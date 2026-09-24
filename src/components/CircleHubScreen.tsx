@@ -49,6 +49,7 @@ export function CircleHubScreen({ onNavigate }: Props) {
   const [circleName, setCircleName] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [membersError, setMembersError] = useState<string | null>(null);
 
   const [activePlan, setActivePlan] = useState<{ id: string } | null>(null);
   const [activePlanLoading, setActivePlanLoading] = useState(true);
@@ -98,13 +99,21 @@ export function CircleHubScreen({ onNavigate }: Props) {
   useEffect(() => {
     if (!circleId) return;
     let cancelled = false;
+    setMembersError(null);
     supabase
       .from("circle_members")
-      .select("id, user_id, status, email, profiles(name)")
+      // Disambiguated to the user_id FK: circle_members now has two FKs into profiles
+      // (user_id and invited_by, added by migration 0024), so an unqualified `profiles(name)`
+      // embed fails with a PostgREST "more than one relationship found" error.
+      .select("id, user_id, status, email, profiles!circle_members_user_id_fkey(name)")
       .eq("circle_id", circleId)
       .in("status", ["active", "invited"])
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
+        if (error) {
+          setMembersError(error.message);
+          return;
+        }
         setMembers(
           (data ?? []).map((row: any) => {
             const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
@@ -283,6 +292,11 @@ export function CircleHubScreen({ onNavigate }: Props) {
           >
             Members · {totalPeople}
           </div>
+          {membersError && (
+            <p style={{ fontSize: 12, color: "var(--warn)", marginBottom: 6 }}>
+              Couldn't load members: {membersError}
+            </p>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {members?.map((member) => {
               const isActive = member.status === "active";
